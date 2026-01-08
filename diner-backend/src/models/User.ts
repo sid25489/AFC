@@ -1,10 +1,16 @@
 import mongoose, { Schema, Document } from "mongoose";
 import bcrypt from "bcryptjs";
 
+/** ✅ ADD THIS */
+export enum UserRole {
+  ADMIN = "admin",
+  STAFF = "staff",
+}
+
 export interface IUser extends Document {
   email: string;
   password: string;
-  role: "admin" | "staff";
+  role: UserRole; // ✅ use enum
   name: string;
   isActive: boolean;
   lastLogin?: Date;
@@ -17,26 +23,25 @@ const UserSchema = new Schema<IUser>(
   {
     email: {
       type: String,
-      required: [true, "Email is required"],
+      required: true,
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, "Please provide a valid email"],
     },
     password: {
       type: String,
-      required: [true, "Password is required"],
-      minlength: [6, "Password must be at least 6 characters"],
-      select: false, // Don't return password by default
+      required: true,
+      minlength: 6,
+      select: false,
     },
     role: {
       type: String,
-      enum: ["admin", "staff"],
-      default: "admin",
+      enum: Object.values(UserRole), // ✅ synced
+      default: UserRole.ADMIN,
     },
     name: {
       type: String,
-      required: [true, "Name is required"],
+      required: true,
       trim: true,
     },
     isActive: {
@@ -47,26 +52,21 @@ const UserSchema = new Schema<IUser>(
       type: Date,
     },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// Hash password before saving
+// password hash
 UserSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
-// Compare password method
 UserSchema.methods.comparePassword = async function (
   candidatePassword: string
-): Promise<boolean> {
-  return await bcrypt.compare(candidatePassword, this.password);
+) {
+  return bcrypt.compare(candidatePassword, this.password);
 };
 
 export default mongoose.model<IUser>("User", UserSchema);
-

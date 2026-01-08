@@ -4,6 +4,8 @@ export interface IMenuItem extends Document {
   name: string;
   description: string;
   price: number;
+  currentPrice?: number;
+  isHappyHour?: boolean;
   category: string;
   imageUrl?: string;
   isVegetarian?: boolean;
@@ -69,6 +71,15 @@ const MenuItemSchema = new Schema<IMenuItem>(
     happyHourPrice: {
       type: Number,
       min: [0, "Happy hour price cannot be negative"],
+    },
+    // Dynamic fields set at runtime (not strictly required to persist)
+    currentPrice: {
+      type: Number,
+      required: false,
+    },
+    isHappyHour: {
+      type: Boolean,
+      required: false,
     },
   },
   {

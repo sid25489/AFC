@@ -1,6 +1,6 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import { body, validationResult } from "express-validator";
-import MenuItem from "../models/Menu";
+import MenuItem, { IMenuItem } from "../models/Menu";
 import { protect, authorize } from "../middleware/auth";
 import { AuthRequest } from "../middleware/auth";
 import { isHappyHour, getHappyHourPrice } from "../utils/happyHour";
@@ -23,7 +23,7 @@ router.get("/", async (req, res) => {
 
     // Apply happy hour pricing if applicable
     const itemsWithPricing = menuItems.map((item) => {
-      const itemObj = item.toObject();
+      const itemObj = item.toObject() as IMenuItem;
       if (isHappyHour() && item.happyHourPrice) {
         itemObj.currentPrice = item.happyHourPrice;
         itemObj.isHappyHour = true;
@@ -48,7 +48,7 @@ router.get("/", async (req, res) => {
 // @route   GET /api/menu/:id
 // @desc    Get single menu item
 // @access  Public
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: Request, res: Response) => {
   try {
     const item = await MenuItem.findById(req.params.id);
 
@@ -56,7 +56,7 @@ router.get("/:id", async (req, res) => {
       return res.status(404).json({ error: "Menu item not found" });
     }
 
-    const itemObj = item.toObject();
+  const itemObj = item.toObject() as IMenuItem;
     if (isHappyHour() && item.happyHourPrice) {
       itemObj.currentPrice = item.happyHourPrice;
       itemObj.isHappyHour = true;
@@ -93,7 +93,7 @@ router.post(
       "Kids Menu",
     ]),
   ],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {

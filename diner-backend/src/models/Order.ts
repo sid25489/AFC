@@ -135,8 +135,15 @@ const OrderSchema = new Schema<IOrder>(
 // Generate unique order number before saving
 OrderSchema.pre("save", async function (next) {
   if (!this.orderNumber) {
-    const count = await mongoose.model("Order").countDocuments();
-    this.orderNumber = `ORD-${Date.now()}-${count + 1}`;
+    try {
+      // Use this.constructor to avoid circular dependency
+      const OrderModel = this.constructor as mongoose.Model<IOrder>;
+      const count = await OrderModel.countDocuments();
+      this.orderNumber = `ORD-${Date.now()}-${String(count + 1).padStart(4, '0')}`;
+    } catch (error) {
+      // Fallback to timestamp-only if count fails
+      this.orderNumber = `ORD-${Date.now()}`;
+    }
   }
   next();
 });

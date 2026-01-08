@@ -139,10 +139,12 @@ const seedMenu = async () => {
       },
     ];
 
-    // Clear existing menu items (optional - comment out if you want to keep existing)
-    // await MenuItem.deleteMany({});
+    // Clear existing menu items to prevent duplicates
+    console.log("🗑️  Clearing existing menu items...");
+    await MenuItem.deleteMany({});
 
     // Insert menu items
+    console.log("📝 Inserting new menu items...");
     const created = await MenuItem.insertMany(menuItems);
 
     console.log(`✅ Seeded ${created.length} menu items successfully!`);

@@ -1,43 +1,46 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import { body, validationResult } from "express-validator";
-import User from "../models/User";
+import User, { IUser, UserRole } from "../models/User";
 import { generateToken } from "../utils/generateToken";
-import { protect } from "../middleware/auth";
-import { AuthRequest } from "../middleware/auth";
+import { AuthRequest, protect } from "../middleware/auth";
 
 const router = express.Router();
 
 // @route   POST /api/auth/register
 // @desc    Register admin user
-// @access  Private (Admin only - for creating additional admins)
+// @access  Private (Admin only)
 router.post(
   "/register",
+  protect,
   [
     body("email").isEmail().normalizeEmail(),
     body("password").isLength({ min: 6 }),
     body("name").trim().notEmpty(),
   ],
-  async (req, res) => {
+  async (req: AuthRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ errors: errors.array() });
       }
 
+      const requestingUser = await User.findById(req.user?.id);
+      if (!requestingUser || requestingUser.role !== UserRole.ADMIN) {
+        return res.status(403).json({ error: "Not authorized as admin" });
+      }
+
       const { email, password, name, role } = req.body;
 
-      // Check if user exists
       const userExists = await User.findOne({ email });
       if (userExists) {
         return res.status(400).json({ error: "User already exists" });
       }
 
-      // Create user
-      const user = await User.create({
+      const user: IUser = await User.create({
         email,
         password,
         name,
-        role: role || "admin",
+        role: role || UserRole.ADMIN,
       });
 
       res.status(201).json({
@@ -60,9 +63,9 @@ router.post(
   "/login",
   [
     body("email").isEmail().normalizeEmail(),
-    body("password").exists(),
+    body("password").notEmpty(),
   ],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -71,15 +74,22 @@ router.post(
 
       const { email, password } = req.body;
 
-      // Check if user exists and get password
+      // Find user and include password field
       const user = await User.findOne({ email }).select("+password");
+
       if (!user) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      // Check password
-      const isMatch = await user.comparePassword(password);
-      if (!isMatch) {
+      // Check if user is active
+      if (!user.isActive) {
+        return res.status(401).json({ error: "Account is inactive" });
+      }
+
+      // Verify password
+      const isPasswordValid = await user.comparePassword(password);
+
+      if (!isPasswordValid) {
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
@@ -100,27 +110,4 @@ router.post(
   }
 );
 
-// @route   GET /api/auth/me
-// @desc    Get current user
-// @access  Private
-router.get("/me", protect, async (req: AuthRequest, res) => {
-  try {
-    const user = await User.findById(req.user?.id);
-    if (!user) {
-      return res.status(404).json({ error: "User not found" });
-    }
-
-    res.json({
-      _id: user._id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      lastLogin: user.lastLogin,
-    });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
 export default router;
-

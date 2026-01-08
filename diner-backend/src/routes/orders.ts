@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import { body, validationResult } from "express-validator";
 import Order from "../models/Order";
 import MenuItem from "../models/Menu";
@@ -22,7 +22,7 @@ router.post(
     body("items").isArray({ min: 1 }),
     body("deliveryType").isIn(["dine-in", "takeaway"]),
   ],
-  async (req, res) => {
+  async (req: Request, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
@@ -127,7 +127,7 @@ router.post(
 // @route   GET /api/orders/:id
 // @desc    Get order by ID
 // @access  Public (for order tracking)
-router.get("/:id", async (req, res) => {
+router.get("/:id", async (req: Request, res: Response) => {
   try {
     const order = await Order.findById(req.params.id);
 
@@ -144,7 +144,7 @@ router.get("/:id", async (req, res) => {
 // @route   GET /api/orders
 // @desc    Get all orders (Admin only)
 // @access  Private (Admin)
-router.get("/", protect, authorize("admin"), async (req: AuthRequest, res) => {
+router.get("/", protect, authorize("admin"), async (req: AuthRequest, res: Response) => {
   try {
     const { status, limit = 50, page = 1 } = req.query;
     const query: any = {};
@@ -181,7 +181,7 @@ router.put(
   protect,
   authorize("admin"),
   [body("status").isIn(["pending", "confirmed", "preparing", "ready", "completed", "cancelled"])],
-  async (req: AuthRequest, res) => {
+  async (req: AuthRequest, res: Response) => {
     try {
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
